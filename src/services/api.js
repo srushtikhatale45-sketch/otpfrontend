@@ -2,9 +2,9 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   if (import.meta.env.PROD) {
-    return ' https://otpbackend-p2gr.onrender.com';
+    return 'https://otpbackend-p2gr.onrender.com';
   }
-  return 'http://localhost:5000/api';
+  return 'https://otpbackend-p2gr.onrender.com/api';
 };
 
 const API_BASE_URL = getBaseURL();

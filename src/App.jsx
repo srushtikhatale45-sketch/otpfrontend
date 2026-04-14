@@ -6,7 +6,7 @@ import Dashboard from './components/Dashboard';
 import Toast from './components/Toast';
 
 // Use full backend URL
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://otpbackend-p2gr.onrender.com';
 axios.defaults.withCredentials = true;
 
 const App = () => {
