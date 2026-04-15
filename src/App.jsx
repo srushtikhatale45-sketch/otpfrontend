@@ -1,116 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import PhoneInput from './components/PhoneInput';
 import OTPInput from './components/OTPInput';
 import Dashboard from './components/Dashboard';
 import Toast from './components/Toast';
-
-// Use full backend URL
-const API_BASE_URL = 'https://otpbackend-p2gr.onrender.com/api';
-axios.defaults.withCredentials = true;
+import { useAuthCheck, useSendOTP, useVerifyOTP, useResendOTP, useLogout } from './hooks/useAuth';
 
 const App = () => {
   const [step, setStep] = useState('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userName, setUserName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
   const [toast, setToast] = useState(null);
   const [showTestOTP, setShowTestOTP] = useState(false);
   const [testOTP, setTestOTP] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  // TanStack Query hooks (using your api.js internally)
+  const { data: authData, isLoading: checkingAuth } = useAuthCheck();
+  const sendOTPMutation = useSendOTP();
+  const verifyOTPMutation = useVerifyOTP();
+  const resendOTPMutation = useResendOTP();
+  const logoutMutation = useLogout();
 
   const showToast = (message, type) => {
     setToast({ message, type });
   };
 
-  const checkAuthStatus = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/auth/check`, {
-        withCredentials: true
-      });
-      if (response.data.authenticated) {
-        setIsAuthenticated(true);
-        setUser(response.data.user);
-        setStep('dashboard');
-      }
-    } catch (error) {
-      console.error('Auth check error:', error);
-    } finally {
-      setCheckingAuth(false);
+  // Handle authentication state
+  useEffect(() => {
+    if (authData?.authenticated) {
+      setStep('dashboard');
     }
-  };
+  }, [authData]);
 
   const handleSendOTP = async (number) => {
-    setIsLoading(true);
     try {
-      console.log('Sending OTP to backend:', `${API_BASE_URL}/otp/send-otp`);
-      console.log('With phone number:', number);
+      const data = await sendOTPMutation.mutateAsync(number);
       
-      const response = await axios.post(`${API_BASE_URL}/otp/send-otp`, {
-        phoneNumber: number
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        withCredentials: true
-      });
-      
-      console.log('Response:', response.data);
-      
-      if (response.data.success) {
+      if (data.success) {
         setPhoneNumber(number);
         setStep('otp');
         showToast('OTP sent successfully!', 'success');
         
-        if (response.data.devOtp) {
-          setTestOTP(response.data.devOtp);
+        if (data.devOtp) {
+          setTestOTP(data.devOtp);
           setShowTestOTP(true);
-          showToast(`Your OTP is: ${response.data.devOtp}`, 'success');
+          showToast(`Your OTP is: ${data.devOtp}`, 'success');
           setTimeout(() => setShowTestOTP(false), 10000);
         }
       }
     } catch (error) {
-      console.error('Send OTP error details:', error);
-      console.error('Error response:', error.response);
-      console.error('Error message:', error.message);
-      
+      console.error('Send OTP error:', error);
       let errorMessage = 'Failed to send OTP. ';
       if (error.code === 'ERR_NETWORK') {
-        errorMessage += 'Cannot connect to server. Make sure backend is running on port 5000';
+        errorMessage += 'Cannot connect to server.';
       } else if (error.response?.status === 404) {
-        errorMessage += 'API endpoint not found. Please check if backend routes are correct.';
+        errorMessage += 'API endpoint not found.';
       } else {
         errorMessage += error.response?.data?.message || error.message;
       }
-      
       showToast(errorMessage, 'error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleVerifyOTP = async (otpCode) => {
-    setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/otp/verify-otp`, {
-        phoneNumber: phoneNumber,
-        otpCode: otpCode,
+      const data = await verifyOTPMutation.mutateAsync({
+        phoneNumber,
+        otpCode,
         name: userName || 'User'
-      }, {
-        withCredentials: true
       });
       
-      if (response.data.verified) {
+      if (data.verified) {
         showToast('✅ Phone number verified successfully!', 'success');
-        setIsAuthenticated(true);
-        setUser(response.data.user);
         
         setTimeout(() => {
           setStep('dashboard');
@@ -120,7 +80,7 @@ const App = () => {
           setShowTestOTP(false);
         }, 1000);
       } else {
-        showToast(response.data.message || 'Invalid OTP. Please try again.', 'error');
+        showToast(data.message || 'Invalid OTP. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Verify OTP error:', error);
@@ -128,26 +88,19 @@ const App = () => {
         error.response?.data?.message || 'Failed to verify OTP. Please try again.',
         'error'
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleResendOTP = async () => {
-    setIsResending(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/otp/resend-otp`, {
-        phoneNumber: phoneNumber
-      }, {
-        withCredentials: true
-      });
+      const data = await resendOTPMutation.mutateAsync(phoneNumber);
       
-      if (response.data.success) {
+      if (data.success) {
         showToast('OTP resent successfully!', 'success');
-        if (response.data.devOtp) {
-          setTestOTP(response.data.devOtp);
+        if (data.devOtp) {
+          setTestOTP(data.devOtp);
           setShowTestOTP(true);
-          showToast(`New OTP: ${response.data.devOtp}`, 'success');
+          showToast(`New OTP: ${data.devOtp}`, 'success');
           setTimeout(() => setShowTestOTP(false), 10000);
         }
       }
@@ -157,18 +110,12 @@ const App = () => {
         error.response?.data?.message || 'Failed to resend OTP. Please try again.',
         'error'
       );
-    } finally {
-      setIsResending(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
-        withCredentials: true
-      });
-      setIsAuthenticated(false);
-      setUser(null);
+      await logoutMutation.mutateAsync();
       setStep('phone');
       showToast('Logged out successfully', 'success');
     } catch (error) {
@@ -188,8 +135,8 @@ const App = () => {
     );
   }
 
-  if (step === 'dashboard' && isAuthenticated) {
-    return <Dashboard user={user} onLogout={handleLogout} />;
+  if (step === 'dashboard' && authData?.authenticated) {
+    return <Dashboard user={authData.user} onLogout={handleLogout} />;
   }
 
   return (
@@ -248,7 +195,7 @@ const App = () => {
             </div>
             <PhoneInput 
               onSubmit={handleSendOTP}
-              isLoading={isLoading}
+              isLoading={sendOTPMutation.isPending}
             />
           </>
         ) : (
@@ -256,8 +203,8 @@ const App = () => {
             phoneNumber={phoneNumber}
             onVerify={handleVerifyOTP}
             onResend={handleResendOTP}
-            isLoading={isLoading}
-            isResending={isResending}
+            isLoading={verifyOTPMutation.isPending}
+            isResending={resendOTPMutation.isPending}
           />
         )}
 

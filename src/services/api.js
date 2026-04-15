@@ -2,9 +2,9 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   if (import.meta.env.PROD) {
-    return 'https://otpbackend-p2gr.onrender.com';
+    return 'https://otpbackend-p2gr.onrender.com/api';
   }
-  return 'https://otpbackend-p2gr.onrender.com/api';
+  return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getBaseURL();
@@ -16,7 +16,7 @@ const api = axios.create({
     'Content-Type': 'application/json'
   },
   timeout: 15000,
-  withCredentials: true // Add this for CORS credentials
+  withCredentials: true
 });
 
 // Add request interceptor for debugging
@@ -50,47 +50,63 @@ const updateUserData = (userData) => {
   }
 };
 
+const clearUserData = () => {
+  localStorage.removeItem('user');
+  window.dispatchEvent(new CustomEvent('user:updated', { detail: null }));
+};
+
 export const authService = {
-  // Register new user
-  register: async (name, mobileNumber) => {
-    const response = await api.post('/users/register', { name, mobileNumber });
-    return response.data;
+  // Check authentication status
+  checkAuth: async () => {
+    try {
+      const response = await api.get('/auth/check');
+      return response.data;
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      // Return unauthenticated state instead of throwing
+      return { authenticated: false };
+    }
   },
 
   // Send OTP
-  sendOTP: async (mobileNumber) => {
-    const response = await api.post('/users/send-otp', { mobileNumber });
+  sendOTP: async (phoneNumber) => {
+    const response = await api.post('/otp/send-otp', { phoneNumber });
     return response.data;
   },
 
   // Verify OTP
-  verifyOTP: async (mobileNumber, otpCode) => {
-    const response = await api.post('/users/verify-otp', { mobileNumber, otpCode });
+  verifyOTP: async (phoneNumber, otpCode, name) => {
+    const response = await api.post('/otp/verify-otp', { phoneNumber, otpCode, name });
     if (response.data.user) {
       updateUserData(response.data.user);
     }
     return response.data;
   },
 
-  // Get user profile
-  getProfile: async (mobileNumber) => {
-    const response = await api.get(`/users/profile/${mobileNumber}`);
+  // Resend OTP
+  resendOTP: async (phoneNumber) => {
+    const response = await api.post('/otp/resend-otp', { phoneNumber });
     return response.data;
   },
 
-  // Update user profile
-  updateProfile: async (mobileNumber, name) => {
-    const response = await api.put(`/users/update/${mobileNumber}`, { name });
-    if (response.data.user) {
-      updateUserData(response.data.user);
+  // Logout
+  logout: async () => {
+    try {
+      const response = await api.post('/auth/logout');
+      if (response.data.success) {
+        clearUserData();
+      }
+      return response.data;
+    } catch (error) {
+      clearUserData();
+      return { success: true };
     }
-    return response.data;
   },
 
-  // Get all users
-  getAllUsers: async () => {
-    const response = await api.get('/users/all');
-    return response.data;
+  // Get current user from localStorage
+  getCurrentUser: () => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
   }
 };
 
