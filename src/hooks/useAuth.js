@@ -1,59 +1,47 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/api';
 
-// Query keys for caching
-export const authKeys = {
-  all: ['auth'],
-  check: () => [...authKeys.all, 'check'],
-};
+export const authKeys = { all: ['auth'], check: () => [...authKeys.all, 'check'] };
 
-// Hook to check authentication status
 export const useAuthCheck = () => {
-  return useQuery({
-    queryKey: authKeys.check(),
-    queryFn: authService.checkAuth,
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
+  return useQuery({ queryKey: authKeys.check(), queryFn: authService.checkAuth, staleTime: 5 * 60 * 1000 });
 };
 
-// Hook to send OTP
-export const useSendOTP = () => {
-  return useMutation({
-    mutationFn: authService.sendOTP,
-  });
+// SMS Hooks
+export const useSendSMSOTP = () => {
+  return useMutation({ mutationFn: authService.sendSMSOTP });
 };
 
-// Hook to verify OTP
-export const useVerifyOTP = () => {
+export const useVerifySMSOTP = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: ({ phoneNumber, otpCode, name }) => 
-      authService.verifyOTP(phoneNumber, otpCode, name),
-    onSuccess: (data) => {
-      if (data.verified) {
-        queryClient.invalidateQueries({ queryKey: authKeys.check() });
-      }
-    },
+    mutationFn: ({ phoneNumber, otpCode, name }) => authService.verifySMSOTP(phoneNumber, otpCode, name),
+    onSuccess: (data) => { if (data.verified) queryClient.invalidateQueries({ queryKey: authKeys.check() }); }
   });
 };
 
-// Hook to resend OTP
-export const useResendOTP = () => {
+export const useResendSMSOTP = () => {
+  return useMutation({ mutationFn: authService.resendSMSOTP });
+};
+
+// WhatsApp Hooks
+export const useSendWhatsAppOTP = () => {
+  return useMutation({ mutationFn: authService.sendWhatsAppOTP });
+};
+
+export const useVerifyWhatsAppOTP = () => {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: authService.resendOTP,
+    mutationFn: ({ phoneNumber, otpCode, name }) => authService.verifyWhatsAppOTP(phoneNumber, otpCode, name),
+    onSuccess: (data) => { if (data.verified) queryClient.invalidateQueries({ queryKey: authKeys.check() }); }
   });
 };
 
-// Hook to logout
+export const useResendWhatsAppOTP = () => {
+  return useMutation({ mutationFn: authService.resendWhatsAppOTP });
+};
+
 export const useLogout = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: authService.logout,
-    onSuccess: () => {
-      queryClient.clear();
-    },
-  });
+  return useMutation({ mutationFn: authService.logout, onSuccess: () => queryClient.clear() });
 };
