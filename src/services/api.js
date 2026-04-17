@@ -3,7 +3,7 @@ import axios from 'axios';
 const getBaseURL = () => {
   // Always use the same pattern - add /api to both
   if (import.meta.env.PROD) {
-    return 'https://otplessbackend.onrender.com/api';
+    return 'https://otplessbackend.onrender.com';
   }
   return 'http://localhost:5000/api';
 };
