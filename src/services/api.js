@@ -46,7 +46,7 @@ export const authService = {
       const response = await api.get('/auth/check');
       return response.data;
     } catch (error) {
-      return { authenticated: false };
+      return { authenticated: false , error: error.message };
     }
   },
   
