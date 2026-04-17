@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  if (import.meta.env.PROD) return 'https://otplessbackend.onrender.com/api'; 
-  return 'http://localhost:5000/api';
+  if (import.meta.env.PROD) return 'https://otplessbackend.onrender.com'; 
+  return 'https://otplessbackend.onrender.com/api';
 };
 
 const API_BASE_URL = getBaseURL();
