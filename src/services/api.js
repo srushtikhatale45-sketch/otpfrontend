@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // ========== CONFIGURATION ==========
 const getBaseURL = () => {
-  return 'https://otpbackend-1-w947.onrender.com'; 
+  return 'https://otplessbackend.onrender.com.'; 
 };
 
 const API_BASE_URL = getBaseURL();
