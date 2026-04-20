@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  return 'https://otplessbackend.onrender.com/api'; // Remove /api from base
+  return 'https://otplessbackend.onrender.com'; // Remove /api from base
 };
 
 const API_BASE_URL = getBaseURL();
