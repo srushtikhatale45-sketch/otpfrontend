@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  return 'https://otplessbackend.onrender.com'; // Remove /api from base
+  return 'https://otplessbackend.onrender.com';
 };
 
 const API_BASE_URL = getBaseURL();
@@ -13,14 +13,15 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  timeout: 15000,
+  timeout: 10000, // 10 seconds timeout
   withCredentials: true
 });
 
 // Add request interceptor for debugging
 api.interceptors.request.use(config => {
   console.log(`📤 ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
-  console.log('📋 Headers:', config.headers);
+  console.log('📋 Headers:', JSON.stringify(config.headers));
+  console.log('📦 Body:', config.data);
   return config;
 });
 
@@ -31,29 +32,43 @@ api.interceptors.response.use(
     return response; 
   },
   error => {
-    console.error(`❌ Error:`, error.message);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
-      console.error('Response headers:', error.response.headers);
+    console.error(`❌ Error Details:`);
+    
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏰ Request timed out! Backend is not responding');
+    } else if (error.response) {
+      // Server responded with error status
+      console.error('📊 Response status:', error.response.status);
+      console.error('📊 Response data:', error.response.data);
+      console.error('📊 Response headers:', error.response.headers);
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('📡 No response received from server');
+      console.error('🔄 Request config:', error.request);
+      console.error('💡 Backend might be down or CORS issue');
+    } else {
+      console.error('⚠️ Error message:', error.message);
     }
+    
     return Promise.reject(error);
   }
 );
 
-// Rest of your service methods (keep as is)
 export const authService = {
   checkAuth: async () => {
     try {
+      console.log('🔍 Checking auth status...');
       const response = await api.get('/api/auth/check');
+      console.log('✅ Auth check successful:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ Auth check failed completely');
       return { authenticated: false, error: error.message };
     }
   },
   
   sendSMSOTP: async (phoneNumber) => {
+    console.log('📱 Sending SMS OTP to:', phoneNumber);
     const response = await api.post('/api/sms/send-otp', { phoneNumber });
     return response.data;
   },
