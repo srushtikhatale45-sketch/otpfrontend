@@ -1,27 +1,12 @@
 import axios from 'axios';
 
-// ========== CONFIGURATION ==========
 const getBaseURL = () => {
-  return 'https://otplessbackend.onrender.com.'; 
+  return 'https://otplessbackend.onrender.com'; // Remove /api from base
 };
 
 const API_BASE_URL = getBaseURL();
 console.log(`🌐 API Base URL: ${API_BASE_URL}`);
 
-// ========== HELPER FUNCTIONS ==========
-const updateUserData = (userData) => {
-  if (userData) {
-    localStorage.setItem('user', JSON.stringify(userData));
-    window.dispatchEvent(new CustomEvent('user:updated', { detail: userData }));
-  }
-};
-
-const clearUserData = () => {
-  localStorage.removeItem('user');
-  window.dispatchEvent(new CustomEvent('user:updated', { detail: null }));
-};
-
-// ========== AXIOS INSTANCE ==========
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 
@@ -32,13 +17,14 @@ const api = axios.create({
   withCredentials: true
 });
 
-// ========== INTERCEPTORS ==========
+// Add request interceptor for debugging
 api.interceptors.request.use(config => {
   console.log(`📤 ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
   console.log('📋 Headers:', config.headers);
   return config;
 });
 
+// Add response interceptor for debugging
 api.interceptors.response.use(
   response => { 
     console.log(`📥 Response:`, response.status, response.data);
@@ -55,7 +41,7 @@ api.interceptors.response.use(
   }
 );
 
-// ========== SERVICE METHODS ==========
+// Rest of your service methods (keep as is)
 export const authService = {
   checkAuth: async () => {
     try {
@@ -83,22 +69,6 @@ export const authService = {
     return response.data;
   },
   
-  sendWhatsAppOTP: async (phoneNumber) => {
-    const response = await api.post('/api/whatsapp/send-otp', { phoneNumber });
-    return response.data;
-  },
-  
-  verifyWhatsAppOTP: async (phoneNumber, otpCode, name) => {
-    const response = await api.post('/api/whatsapp/verify-otp', { phoneNumber, otpCode, name });
-    if (response.data.user) updateUserData(response.data.user);
-    return response.data;
-  },
-  
-  resendWhatsAppOTP: async (phoneNumber) => {
-    const response = await api.post('/api/whatsapp/resend-otp', { phoneNumber });
-    return response.data;
-  },
-  
   logout: async () => {
     try {
       const response = await api.post('/api/auth/logout');
@@ -114,6 +84,18 @@ export const authService = {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   }
+};
+
+const updateUserData = (userData) => {
+  if (userData) {
+    localStorage.setItem('user', JSON.stringify(userData));
+    window.dispatchEvent(new CustomEvent('user:updated', { detail: userData }));
+  }
+};
+
+const clearUserData = () => {
+  localStorage.removeItem('user');
+  window.dispatchEvent(new CustomEvent('user:updated', { detail: null }));
 };
 
 export default api;
